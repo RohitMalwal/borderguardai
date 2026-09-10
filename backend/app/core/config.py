@@ -7,6 +7,7 @@ setup and zero API keys.
 from __future__ import annotations
 
 import os
+import tempfile
 from pathlib import Path
 
 
@@ -28,7 +29,13 @@ class Settings:
     # --- Paths -------------------------------------------------------------
     # backend/app/core/config.py -> project root is three parents up.
     BASE_DIR: Path = Path(__file__).resolve().parents[3]
-    STORAGE_DIR: Path = BASE_DIR / "storage"
+    
+    # Use ephemeral storage on Render; fallback to local storage otherwise.
+    if os.getenv("RENDER"):
+        STORAGE_DIR = Path(tempfile.gettempdir()) / "borderguard_storage"
+    else:
+        STORAGE_DIR = BASE_DIR / "storage"
+        
     UPLOAD_DIR: Path = STORAGE_DIR / "uploads"
     PROCESSED_DIR: Path = STORAGE_DIR / "processed"
     RESULTS_DIR: Path = STORAGE_DIR / "results"
@@ -38,13 +45,14 @@ class Settings:
     ALLOWED_CONTENT_TYPES: set[str] = {"image/jpeg", "image/png"}
     MAX_UPLOAD_BYTES: int = 15 * 1024 * 1024  # 15 MB
 
-    # --- CORS (local React dev servers) -----------------------------------
+    # --- CORS (local React dev servers and production) -----------------------------------
+    _extra_cors = (os.getenv("FRONTEND_URL", "") + "," + os.getenv("CORS_ORIGINS", "")).split(",")
     CORS_ORIGINS: list[str] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
-    ]
+    ] + [x.strip() for x in _extra_cors if x.strip()]
 
     # --- OCR ---------------------------------------------------------------
     # PaddleOCR is heavy and may not have wheels on every Python version.
