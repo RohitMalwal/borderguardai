@@ -6,8 +6,6 @@ Local-first, offline-capable. No API keys, no external services. Run with:
 """
 from __future__ import annotations
 
-from contextlib import asynccontextmanager
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -16,12 +14,12 @@ from app.core.config import settings
 
 settings.ensure_dirs()
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Preload PaddleOCR models during startup so first request doesn't timeout on Render
-    from app.services.ocr.paddle_service import preload
-    preload()
-    yield
+# NOTE: PaddleOCR is intentionally NOT preloaded at startup. Loading the models
+# eagerly pushes memory over the 512MB limit on small hosts (e.g. Render free
+# tier) and OOM-kills the process before it can serve a single request. The OCR
+# engine is lazy-loaded on the first /api/screening/analyze call instead (see
+# app.services.ocr.paddle_service._get_engine), keeping startup lightweight so
+# health checks and the rest of the API stay responsive.
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -32,7 +30,6 @@ app = FastAPI(
         "surface inconsistencies. This prototype does not access any government "
         "database and does not provide certified forensic analysis."
     ),
-    lifespan=lifespan,
 )
 
 app.add_middleware(
