@@ -46,13 +46,26 @@ class Settings:
     MAX_UPLOAD_BYTES: int = 15 * 1024 * 1024  # 15 MB
 
     # --- CORS (local React dev servers and production) -----------------------------------
-    _extra_cors = (os.getenv("FRONTEND_URL", "") + "," + os.getenv("CORS_ORIGINS", "")).split(",")
-    CORS_ORIGINS: list[str] = [
+    # Origins are matched by the browser exactly, so trailing slashes must be
+    # stripped (an "Origin" header never carries one) and duplicates removed.
+    # The production Vercel frontend is included as a default so CORS works even
+    # if FRONTEND_URL is unset on the host; FRONTEND_URL / CORS_ORIGINS env vars
+    # add any further origins (e.g. preview deployments).
+    _default_origins: list[str] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
-    ] + [x.strip() for x in _extra_cors if x.strip()]
+        "https://borderguardai.vercel.app",
+    ]
+    _extra_cors = (os.getenv("FRONTEND_URL", "") + "," + os.getenv("CORS_ORIGINS", "")).split(",")
+    CORS_ORIGINS: list[str] = list(
+        dict.fromkeys(
+            origin.rstrip("/")
+            for origin in _default_origins + [x.strip() for x in _extra_cors if x.strip()]
+            if origin.rstrip("/")
+        )
+    )
 
     # --- OCR ---------------------------------------------------------------
     # PaddleOCR is heavy and may not have wheels on every Python version.
