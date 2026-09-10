@@ -1,0 +1,36 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+
+# --- Node / frontend ---
+node_modules/
+frontend/dist/
+frontend/.vite/
+*.local
+
+# --- Environment / secrets (keep .env.example tracked) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.json
+
+# --- Runtime storage (keep the folders, ignore contents) ---
+storage/uploads/*
+storage/processed/*
+storage/results/*
+!storage/uploads/.gitkeep
+!storage/processed/.gitkeep
+!storage/results/.gitkeep
+
+# --- OS / editor ---
+.DS_Store
+.idea/
+.vscode/
+*.swp

@@ -1,0 +1,34 @@
+# BorderGuard AI — backend dependencies (local-first, no API keys)
+#
+# TARGET ENVIRONMENT: Python 3.11 on Windows 10/11 and macOS.
+# Version markers below keep this file installable on newer Python too (e.g.
+# 3.14, where PaddleOCR has no wheels and OpenCV resolves to 5.x) — those
+# environments simply run with OCR/face degraded honestly.
+
+# --- Core API ---
+fastapi>=0.110,<1.0
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9        # multipart/form-data file uploads
+pydantic>=2.6,<3.0
+
+# --- Image processing (real, offline) ---
+# Pin to OpenCV 4.x on Python <=3.12: OpenCV 5 wheels drop the objdetect
+# module and no longer bundle cv2.data Haar cascades, breaking face detection.
+opencv-python>=4.9,<5.0 ; python_version < "3.13"
+opencv-python>=4.9      ; python_version >= "3.13"
+
+# NumPy: PaddlePaddle 2.x requires NumPy < 2. Keep 1.x on the OCR-capable
+# Python range; allow 2.x on newer Python (which has no paddle anyway).
+numpy>=1.26,<2.0 ; python_version < "3.13"
+numpy>=1.26      ; python_version >= "3.13"
+
+# --- Local OCR (PaddleOCR 2.x — matches this project's engine API) ---
+# Pinned to the 2.x series: PaddleOCR 3.x changed the constructor and .ocr()
+# signature. Models download automatically on first use and cache locally;
+# run `python -m app.preload` (see README) to pre-cache for an offline demo.
+paddleocr>=2.7,<3.0    ; python_version < "3.13"
+paddlepaddle>=2.6,<3.0 ; python_version < "3.13"
+
+# --- Testing ---
+pytest>=8.0
+httpx>=0.27                    # FastAPI TestClient transport
