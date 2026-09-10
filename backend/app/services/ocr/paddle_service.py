@@ -57,6 +57,15 @@ def _get_engine():
             from paddleocr import PaddleOCR  # type: ignore
 
             _engine = _construct(PaddleOCR)
+        except MemoryError:
+            # Ran out of memory building the models (common on 512MB hosts).
+            # Fail gracefully so the request returns a structured error instead
+            # of the whole server being OOM-killed. Note: if the OS reaps the
+            # process outright (SIGKILL), no Python handler can intercept it.
+            _load_error = (
+                "Insufficient memory to initialize the OCR engine on this host."
+            )
+            _engine = None
         except Exception as exc:  # noqa: BLE001 - report any load failure honestly
             _load_error = str(exc)
             _engine = None
@@ -121,6 +130,21 @@ def is_available() -> bool:
     if not settings.OCR_ENABLED:
         return False
     return _get_engine() is not None
+
+
+def status_without_loading() -> dict:
+    """Report OCR readiness WITHOUT initializing PaddleOCR.
+
+    Used by health checks so probing liveness never triggers a multi-hundred-MB
+    model load (which would OOM small hosts). Reflects only already-known state:
+    whether OCR is enabled by config and whether the engine happens to be loaded
+    from a prior request.
+    """
+    return {
+        "enabled": settings.OCR_ENABLED,
+        "loaded": _engine is not None,
+        "load_error": _load_error,
+    }
 
 
 def _normalize_paddle_result(result) -> list[OcrTextLine]:
